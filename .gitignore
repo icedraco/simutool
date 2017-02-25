@@ -1,0 +1,11 @@
+# IntelliJ Files
+.idea/
+
+# Compiled object files
+*.pyc
+*.o
+*.a
+*.so
+
+# Log files
+*.log
