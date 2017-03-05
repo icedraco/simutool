@@ -115,33 +115,6 @@ def do_link_flight_mode(fm_path):
     return 0
 
 
-def do_sim_vehicle(postfix=""):
-    """
-    :param str postfix: additional parameters to add to the end of the sim_vehicle command
-    :return: return code
-    :rtype: int
-    """
-    config = get_master_config()
-    old_cwd = os.getcwd()
-    os.chdir(config.ardupilot_dir)
-
-    import subprocess
-    proc = subprocess.Popen((config.sim_vehicle, postfix), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-    while True:
-        line = proc.stdout.readline()
-        if not line:
-            break
-
-        log.info(line.strip())
-
-    exit_code = proc.wait()
-    log.warning("WARNING: sim_vehicle process exited with code {}".format(exit_code))
-
-    os.chdir(old_cwd)
-    return exit_code
-
-
 def do_command(cmd):
     """
     :param list[str] cmd: command to execute as a list of argument strings
@@ -187,13 +160,13 @@ def do_deploy(argv):
         log.error("Exit code {} -> aborted".format(exit_code))
         return exit_code
 
-    exit_code = do_command(['./waf', 'copter', '-j', conf.num_jobs])
+    exit_code = do_command(['./waf', '--targets', 'bin/arducopter-quad', '-j', conf.num_jobs])
     if exit_code != 0:
         log.error("Exit code {} -> aborted".format(exit_code))
         return exit_code
 
     log.info("Trying to run project...")
-    return do_command(['./build/sitl/bin/arducopter',
+    return do_command(['./build/sitl/bin/arducopter-quad',
                        '-S',
                        '-I0',
                        '--home', '-35.363261,149.165230,584,353',
@@ -205,7 +178,6 @@ def do_deploy(argv):
 def do_print_syntax(argv):
     print "Syntax: {} deploy <flight mode hint>".format(argv[0])
     print "        {} link <flight mode path>".format(argv[0])
-    print "        {} run".format(argv[0])
     print
 
 
@@ -216,7 +188,6 @@ def main(argv):
 
     cmd_map = {
         'link': lambda: do_link_flight_mode(argv[2]),
-        'run': lambda: do_sim_vehicle("-j 4"),
         'deploy': lambda: do_deploy(argv),
     }
 
