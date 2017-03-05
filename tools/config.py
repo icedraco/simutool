@@ -11,6 +11,8 @@ G_AUTOSAVE = False
 
 
 class Config(object):
+    DEFAULT_NUM_JOBS = 4
+
     def __init__(self, filename):
         """
         :param str filename: filename to load configuration from
@@ -23,6 +25,16 @@ class Config(object):
         status = "CREATED" if not init_success else "LOADED"
         self.log.info("Initialized from {} [{}]".format(self.filename, status))
         _ = self.ardupilot_dir  # initial detection
+
+    @property
+    def num_jobs(self):
+        if not self.conf.has_option('general', 'num_jobs'):
+            self.conf.set('general', 'num_jobs', str(self.DEFAULT_NUM_JOBS))
+        return self.conf.getint('general', 'num_jobs')
+
+    @num_jobs.setter
+    def num_jobs(self, value):
+        self.conf.set('general', 'num_jobs', int(value))
 
     @property
     def sim_vehicle(self):
