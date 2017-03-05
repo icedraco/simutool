@@ -36,7 +36,8 @@ def get_init_files(fm_name):
     return [
         fm_name + ".cpp",
         fm_name + "_data.cpp",
-        'simucopter-agent.cpp'
+        'simucopter-server.cpp',
+        'simucopter-ardupilot.cpp',
     ]
 
 
@@ -160,13 +161,13 @@ def do_deploy(argv):
         log.error("Exit code {} -> aborted".format(exit_code))
         return exit_code
 
-    exit_code = do_command(['./waf', '--targets', 'bin/arducopter-quad', '-j', conf.num_jobs])
+    exit_code = do_command(['./waf', 'build', '--target', 'bin/arducopter', '-j', conf.num_jobs])
     if exit_code != 0:
         log.error("Exit code {} -> aborted".format(exit_code))
         return exit_code
 
     log.info("Trying to run project...")
-    return do_command(['./build/sitl/bin/arducopter-quad',
+    return do_command(['./build/sitl/bin/arducopter',
                        '-S',
                        '-I0',
                        '--home', '-35.363261,149.165230,584,353',
