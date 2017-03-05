@@ -7,9 +7,7 @@ import logging
 
 from tools.config import get_master_config
 
-
 log = logging.getLogger(__name__)
-
 
 G_HOME = '/home/pi'
 
@@ -125,17 +123,43 @@ def do_sim_vehicle(postfix=""):
     """
     config = get_master_config()
     old_cwd = os.getcwd()
-    os.chdir(config.arducopter_dir)
+    os.chdir(config.ardupilot_dir)
 
     import subprocess
-    proc = subprocess.Popen((config.sim_vehicle, postfix), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    process_output, _ = proc.communicate("")
-    log.debug(process_output)
+    proc = subprocess.Popen((config.sim_vehicle, postfix), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+    while True:
+        line = proc.stdout.readline()
+        if not line:
+            break
+
+        log.info(line.strip())
+
     exit_code = proc.wait()
     log.warning("WARNING: sim_vehicle process exited with code {}".format(exit_code))
 
     os.chdir(old_cwd)
     return exit_code
+
+
+def do_command(cmd):
+    """
+    :param list[str] cmd: command to execute as a list of argument strings
+    :return int: exit code
+    """
+    import subprocess
+    cmd = map(str, cmd)  # cleanup
+    log.info(">> {}".format(' '.join(cmd)))
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    while True:
+        line = proc.stdout.readline()
+        if not line:
+            break
+
+        log.info(line.strip())
+
+    return proc.wait()  # exit code
 
 
 def do_deploy(argv):
@@ -154,9 +178,28 @@ def do_deploy(argv):
     log.info("Running link operation against flight mode path...")
     do_link_flight_mode(fm_path)
 
+    conf = get_master_config()
+
+    log.info("Building project...")
+    os.chdir(conf.ardupilot_dir)
+    exit_code = do_command(['./waf', 'configure', '--board', 'sitl'])
+    if exit_code != 0:
+        log.error("Exit code {} -> aborted".format(exit_code))
+        return exit_code
+
+    exit_code = do_command(['./waf', 'copter', '-j', conf.num_jobs])
+    if exit_code != 0:
+        log.error("Exit code {} -> aborted".format(exit_code))
+        return exit_code
+
     log.info("Trying to run project...")
-    do_sim_vehicle("-j 4")
-    return 0
+    return do_command(['./build/sitl/bin/arducopter',
+                       '-S',
+                       '-I0',
+                       '--home', '-35.363261,149.165230,584,353',
+                       '--model', '+',
+                       '--speedup', '1',
+                       '--defaults', './Tools/autotest/default_params/copter.parm'])
 
 
 def do_print_syntax(argv):
