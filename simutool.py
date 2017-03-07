@@ -1,15 +1,20 @@
 #!/usr/bin/python2.7
 
-import os
 import sys
 import tools
-import logging
 
+from tools.core import *
 from tools.config import get_master_config
 
 log = logging.getLogger(__name__)
 
 G_HOME = '/home/pi'
+
+# simucopter code installation path
+G_SIMUCOPTER_PATH = os.path.join(G_HOME, 'simucopter')
+
+# log path
+G_LOG_PATH = os.path.join(G_SIMUCOPTER_PATH, 'log')
 
 # name of the configuration file
 G_CONFIG_FILENAME = 'simucopter.ini'
@@ -18,27 +23,13 @@ G_CONFIG_FILENAME = 'simucopter.ini'
 G_CONFIG_PATH = os.path.join(G_HOME, G_CONFIG_FILENAME)
 
 # Simulink build path (where flight mode code is deployed)
-G_SIMULINK_BUILD_PATH = os.path.join(G_HOME, 'simucopter')
+G_SIMULINK_BUILD_PATH = G_SIMUCOPTER_PATH
 
 # auxiliary code that may be required, but not available from Simulink deployment package
 G_AUX_CODE_DIR = os.path.join(G_HOME, 'simucopter', 'bridge')
 
 # files excluded from linking into ArduPilot source
 G_EXCLUDED_FILES = ['Copter.h']
-
-
-def get_init_files(fm_name):
-    """
-    :param str fm_name: flight mode name
-    :return: list of required C++ files for the project
-    :rtype: list[str]
-    """
-    return [
-        fm_name + ".cpp",
-        fm_name + "_data.cpp",
-        'simucopter-server.cpp',
-        'simucopter-ardupilot.cpp',
-    ]
 
 
 def link_fm_file(fm_path, link_path):
@@ -68,37 +59,31 @@ def link_fm_file(fm_path, link_path):
     return True
 
 
-def do_link_flight_mode(fm_path):
+def do_link_flight_mode(fm):
     """
-    :param str fm_path: path to the flight mode directory (including flight mode dir name itself)
-    :return: return code
-    :rtype: int
+    :param FlightMode fm: flight mode to link to ArduCopter
+    :return int: return code
     """
-    fm_path = os.path.abspath(fm_path)
 
-    assert os.path.isdir(fm_path) or os.path.islink(fm_path)
-    assert fm_path.endswith('_ert_rtw')
+    assert os.path.isdir(fm.path) or os.path.islink(fm.path)
+    assert fm.path.endswith('_ert_rtw')
 
-    config = get_master_config()
-
-    fm_name = os.path.basename(fm_path).split('_ert_rtw')[-2]
-    init_files = get_init_files(fm_name)
-    arducopter_dir = config.arducopter_dir
+    arducopter_dir = get_master_config().arducopter_dir
 
     log.info("")
     log.info("Attempting to link flight mode...")
-    log.info("  > Flight Mode: {}".format(fm_name))
+    log.info("  > Flight Mode: {}".format(fm))
     log.info("  > ArduCopter:  {}".format(arducopter_dir))
-    log.info("  > Code:        {}".format(fm_path))
-    [log.info("      >> {}".format(fname)) for fname in init_files]
+    log.info("  > Code:        {}".format(fm.path))
+    [log.info("      >> {}".format(fname)) for fname in fm.init_cpp_files]
     log.info("")
 
     log.info("Expanding list with included files...")
-    t = tools.tracer.Tracer(fm_path)
+    t = tools.tracer.Tracer(fm.path)
     t.addpath(G_AUX_CODE_DIR)
     t.exclude(G_EXCLUDED_FILES)
 
-    [t.load(fname) for fname in init_files]
+    [t.load(fname) for fname in fm.init_cpp_files]
     included_files = t.files
     log.info("")
 
@@ -107,7 +92,7 @@ def do_link_flight_mode(fm_path):
     log.info("")
 
     # obtain full paths
-    included_files_full = [os.path.join(os.path.abspath(fm_path), fname) for fname in included_files]
+    included_files_full = [os.path.join(fm.path, fname) for fname in included_files]
 
     for fm_file in included_files_full:
         link_file = os.path.join(arducopter_dir, os.path.basename(fm_file))
@@ -139,18 +124,18 @@ def do_command(cmd):
 def do_deploy(argv):
     fm_hint = argv[2]
     fm_name = os.path.basename(fm_hint).split('.')[0]
-    fm_path = os.path.join(G_SIMULINK_BUILD_PATH, "{}_ert_rtw".format(fm_name))
-    fm_path_status = "OK" if os.path.isdir(fm_path) else "BAD"
+
+    fm = FlightMode(fm_name, G_SIMULINK_BUILD_PATH)
 
     log.info("--- DEPLOY: {} -----------------------------".format(fm_name))
-    log.info(" > Path: {} [{}]".format(fm_path, fm_path_status))
+    log.info(" > Path: {} [{}]".format(fm.path, "OK" if fm.path_exists else "BAD"))
     log.info("")
-    if not os.path.isdir(fm_path):
+    if not os.path.isdir(fm.path):
         log.error("Proposed fm_path is not a directory!!")
         return 1
 
     log.info("Running link operation against flight mode path...")
-    do_link_flight_mode(fm_path)
+    do_link_flight_mode(fm)
 
     conf = get_master_config()
 
@@ -176,7 +161,7 @@ def do_deploy(argv):
                        '--defaults', './Tools/autotest/default_params/copter.parm'])
 
 
-def do_print_syntax(argv):
+def print_syntax(argv):
     print "Syntax: {} deploy <flight mode hint>".format(argv[0])
     print "        {} link <flight mode path>".format(argv[0])
     print
@@ -184,7 +169,7 @@ def do_print_syntax(argv):
 
 def main(argv):
     if len(argv) == 1:
-        do_print_syntax(argv)
+        print_syntax(argv)
         return 1
 
     cmd_map = {
@@ -195,7 +180,7 @@ def main(argv):
     cmd = argv[1]
 
     if cmd.lower() not in cmd_map:
-        do_print_syntax(argv)
+        print_syntax(argv)
         print
         print "(invalid command '{}')".format(cmd)
         print
@@ -213,7 +198,12 @@ def main(argv):
 
 
 if __name__ == '__main__':
+    if not os.path.isdir(G_LOG_PATH):
+        os.makedirs(G_LOG_PATH)
+        assert os.path.isdir(G_LOG_PATH)
+
     logging.getLogger().setLevel(logging.DEBUG)
     logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-    logging.getLogger().addHandler(logging.FileHandler('runtime.log', 'w'))
+    logging.getLogger().addHandler(logging.FileHandler(os.path.join(G_LOG_PATH, 'runtime.log'), 'w'))
+
     raise SystemExit(main(sys.argv))
