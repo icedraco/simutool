@@ -13,8 +13,14 @@ EXCLUDED_FILES = ['Copter.h']
 
 class TracerBasic(unittest.TestCase):
 
-    # def setUp(self):
-    #     self.tracer = tracer.trace(self.ROOT_FILE)
+    def setUp(self):
+        self.assertTrue(os.path.isdir(CODE_DIR), os.path.join(os.getcwd(), CODE_DIR))
+        self.assertTrue(os.path.isdir(AUX_CODE_DIR), os.path.join(os.getcwd(), CODE_DIR))
+
+        for f in INIT_FILES:
+            option1 = os.path.join(CODE_DIR, f)
+            option2 = os.path.join(AUX_CODE_DIR, f)
+            self.assertTrue(os.path.isfile(option1) or os.path.isfile(option2), f)
 
     def test_all_requirements_met(self):
         needed_files = [
