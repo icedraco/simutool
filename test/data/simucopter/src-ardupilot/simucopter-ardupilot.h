@@ -1,12 +1,13 @@
-#ifndef __SIMUCOPTER_PROTOCOL_H_
-#define __SIMUCOPTER_PROTOCOL_H_
+#ifndef SIMUCOPTER_BRIDGE_SIMUCOPTER_ARDUPILOT_H
+#define SIMUCOPTER_BRIDGE_SIMUCOPTER_ARDUPILOT_H
 
-// Represents a "metadata" frame that's sent over ZMQ before the data itself.
-// The metadata contains the data-specific message ID and other info.
-struct s_adapter_meta {
-    int      msg_id;
-    int      data_sz;
-};
+#include "bridge/bridge.h"
+#include "simucopter-copter.h"    // copter_* to ArduCopter functions
+
+#include "TestFlightMode.h"
+
+
+#define ADDR_ARDUCOPTER "tcp://127.0.0.1:5555"
 
 
 /*****************************************************************************\
@@ -14,6 +15,8 @@ struct s_adapter_meta {
 \*****************************************************************************/
 
 #define MSG_PING                  0x0000
+#define MSG_ERROR                 0xffff
+
 
 // UAV-related messages start at 0x1000
 
@@ -47,6 +50,5 @@ struct s_adapter_meta {
 
 #define MSG_GCS_SEND_TEXT         0x2001
 
-#endif
 
-
+#endif //SIMUCOPTER_BRIDGE_SIMUCOPTER_ARDUPILOT_H

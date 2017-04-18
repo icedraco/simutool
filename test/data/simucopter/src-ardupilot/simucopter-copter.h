@@ -4,8 +4,8 @@
 // TODO: Fix this somehow - this is horrible...
 #define private public
 
-#include "simucopter-funcs.h"
 #include "Copter.h"
+#include "simucopter-funcs.h"
 
 inline double copter_get_accel_x() { return copter.ins.get_accel(0).x; }
 inline double copter_get_accel_y() { return copter.ins.get_accel(0).y; }

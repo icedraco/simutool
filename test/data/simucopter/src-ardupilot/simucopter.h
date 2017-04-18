@@ -1,16 +1,8 @@
 #ifndef ARDUPILOT_SIMUCOPTER_H
 #define ARDUPILOT_SIMUCOPTER_H
 
-#ifndef SIMULINK_AGENT
-// ArduPilot -> prepare bridge server libs
 #include <pthread.h>
-#include "simucopter-server.h"
-#else
-// Simulink Agent -> prepare bridge client/requester
-#include "simucopter-requester.h"
-#endif
-
-#include "simucopter-funcs.h"
+#include "simucopter-copter.h"
 #include "Copter.h"
 
 // TODO: DETERMINE THE NAME OF THE H FILE!

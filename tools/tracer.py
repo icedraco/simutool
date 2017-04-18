@@ -23,10 +23,10 @@ class Tracer(object):
         :param str code_path: code path
         """
         self.log = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.code_paths = []
-        self.files = set()
-        self.requirements = dict()
-        self.excluded_files = set()
+        self.code_paths = []  # type: list[str]
+        self.files = set()  # type: set[str]
+        self.requirements = dict()  # type: dict[str, set[str]]
+        self.excluded_files = set()  # type: set[str]
 
         self.addpath(code_path)
 
@@ -44,7 +44,7 @@ class Tracer(object):
         :return: set of files required in total by the entire source tree
         :rtype: set[str]
         """
-        return set(sum(map(list, [self.requirements[k].values() for k in self.requirements.keys()]), []))
+        return set(sum(map(list, [self.requirements[k] for k in self.requirements.keys()]), []))
 
     def addpath(self, path):
         """
