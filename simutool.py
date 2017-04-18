@@ -155,7 +155,8 @@ def do_deploy(argv):
 
 def do_build():
     log.info("Building project...")
-    os.chdir(get_master_config().ardupilot_dir)
+    conf = get_master_config()
+    os.chdir(conf.ardupilot_dir)
     exit_code = do_command(['./waf', 'configure', '--board', 'sitl'])
     if exit_code != 0:
         log.error("Exit code {} -> aborted".format(exit_code))
@@ -165,6 +166,8 @@ def do_build():
     if exit_code != 0:
         log.error("Exit code {} -> aborted".format(exit_code))
         return exit_code
+
+    return 0
 
 
 def do_run():
@@ -182,7 +185,8 @@ def do_run():
 def print_syntax(argv):
     print "Syntax: {} deploy <flight mode hint>".format(argv[0])
     print "        {} link <flight mode path>".format(argv[0])
-    print "        {} run"
+    print "        {} build".format(argv[0])
+    print "        {} run".format(argv[0])
     print
 
 
