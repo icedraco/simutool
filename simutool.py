@@ -10,8 +10,12 @@ log = logging.getLogger(__name__)
 
 G_HOME = '/home/pi'
 
-# simucopter code installation path
+# simucopter code installation path and its source paths
 G_SIMUCOPTER_PATH = os.path.join(G_HOME, 'simucopter')
+G_SRC_AGENT = os.path.join(G_SIMUCOPTER_PATH, 'src-agent')
+G_SRC_ARDUPILOT = os.path.join(G_SIMUCOPTER_PATH, 'src-ardupilot')
+G_SRC_SITL = os.path.join(G_SIMUCOPTER_PATH, 'src-sitl')
+G_SRC_BRIDGE = os.path.join(G_SIMUCOPTER_PATH, 'bridge')
 
 # log path
 G_LOG_PATH = os.path.join(G_SIMUCOPTER_PATH, 'log')
@@ -25,15 +29,17 @@ G_CONFIG_PATH = os.path.join(G_HOME, G_CONFIG_FILENAME)
 # Simulink build path (where flight mode code is deployed)
 G_SIMULINK_BUILD_PATH = G_SIMUCOPTER_PATH
 
-# auxiliary code that may be required, but not available from Simulink deployment package
-G_AUX_CODE_DIR = os.path.join(G_HOME, 'simucopter', 'bridge')
-
 # files excluded from linking into ArduPilot source
-G_EXCLUDED_FILES = ['Copter.h']
+G_EXCLUDED_FILES = [
+    'Copter.h',  # provided by ArduCopter itself
+    'bridge.h',  # provided by libraries/bridge/
+]
 
 
 def link_fm_file(fm_path, link_path):
     """
+    Link flight mode file from `fm_path` to `link_path`
+    
     :param (str) fm_path: path to original file
     :param (str) link_path: path to target symbolic link file
     :return: False if target link file exists, and is not a symlink to begin with
@@ -61,7 +67,9 @@ def link_fm_file(fm_path, link_path):
 
 def do_link_flight_mode(fm):
     """
-    :param FlightMode fm: flight mode to link to ArduCopter
+    Link an entire set of flight mode files to ArduCopter
+    
+    :param FlightMode fm: flight mode to link
     :return int: return code
     """
 
@@ -79,8 +87,9 @@ def do_link_flight_mode(fm):
     log.info("")
 
     log.info("Expanding list with included files...")
-    t = tools.tracer.Tracer(fm.path)
-    t.addpath(G_AUX_CODE_DIR)
+    t = tools.tracer.Tracer(G_SRC_ARDUPILOT)
+    t.addpath(G_SRC_AGENT)
+    t.addpath(fm.path)
     t.exclude(G_EXCLUDED_FILES)
 
     [t.load(fname) for fname in fm.init_cpp_files]
@@ -137,10 +146,16 @@ def do_deploy(argv):
     log.info("Running link operation against flight mode path...")
     do_link_flight_mode(fm)
 
-    conf = get_master_config()
+    exit_code = do_build()
+    if exit_code != 0:
+        return exit_code
 
+    return do_run()
+
+
+def do_build():
     log.info("Building project...")
-    os.chdir(conf.ardupilot_dir)
+    os.chdir(get_master_config().ardupilot_dir)
     exit_code = do_command(['./waf', 'configure', '--board', 'sitl'])
     if exit_code != 0:
         log.error("Exit code {} -> aborted".format(exit_code))
@@ -151,7 +166,10 @@ def do_deploy(argv):
         log.error("Exit code {} -> aborted".format(exit_code))
         return exit_code
 
+
+def do_run():
     log.info("Trying to run project...")
+    os.chdir(get_master_config().ardupilot_dir)
     return do_command(['./build/sitl/bin/arducopter',
                        '-S',
                        '-I0',
@@ -164,6 +182,7 @@ def do_deploy(argv):
 def print_syntax(argv):
     print "Syntax: {} deploy <flight mode hint>".format(argv[0])
     print "        {} link <flight mode path>".format(argv[0])
+    print "        {} run"
     print
 
 
@@ -175,6 +194,8 @@ def main(argv):
     cmd_map = {
         'link': lambda: do_link_flight_mode(argv[2]),
         'deploy': lambda: do_deploy(argv),
+        'build': lambda: do_build(),
+        'run': lambda: do_run(),
     }
 
     cmd = argv[1]
