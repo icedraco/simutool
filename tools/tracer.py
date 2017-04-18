@@ -87,7 +87,7 @@ class Tracer(object):
                     self.log.debug("")
                     self.add(fname, path, items)
                     self.log.debug("")
-                    continue
+                    break
 
             for item in items:
                 if item not in self.items_processed:
