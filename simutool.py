@@ -148,6 +148,7 @@ def do_deploy(argv):
 
     exit_code = do_build()
     if exit_code != 0:
+        log.error("Exit code {} -> aborted".format(exit_code))
         return exit_code
 
     return do_run()
@@ -157,6 +158,7 @@ def do_build():
     log.info("Building project...")
     conf = get_master_config()
     os.chdir(conf.ardupilot_dir)
+    log.info("CWD: {}".format(os.getcwd()))
     exit_code = do_command(['./waf', 'configure', '--board', 'sitl'])
     if exit_code != 0:
         log.error("Exit code {} -> aborted".format(exit_code))
@@ -173,6 +175,7 @@ def do_build():
 def do_run():
     log.info("Trying to run project...")
     os.chdir(get_master_config().ardupilot_dir)
+    log.info("CWD: {}".format(os.getcwd()))
     return do_command(['./build/sitl/bin/arducopter',
                        '-S',
                        '-I0',
@@ -180,6 +183,13 @@ def do_run():
                        '--model', '+',
                        '--speedup', '1',
                        '--defaults', './Tools/autotest/default_params/copter.parm'])
+
+
+def do_kill():
+    log.info("Locating and killing processes...")
+    # ps -ef | grep your_process_name | grep -v grep | awk '{print $2}' | xargs kill
+    os.system("ps -ef | grep TestFlightMode | grep -v grep | awk '{print $2}' | xargs kill")
+    os.system("ps -ef | grep copter | grep -v grep | awk '{print $2}' | xargs kill")
 
 
 def print_syntax(argv):
