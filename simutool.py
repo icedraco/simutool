@@ -86,6 +86,13 @@ def do_link_flight_mode(fm):
     [log.info("      >> {}".format(fname)) for fname in fm.init_cpp_files]
     log.info("")
 
+    log.info("Removing existing links from ArduCopter directory...")
+    from glob import glob
+    all_links = filter(os.path.islink, glob(os.path.join(arducopter_dir, '*')))
+    for l in all_links:
+        os.unlink(l)
+        log.info("  > {}".format(l))
+
     log.info("Expanding list with included files...")
     t = tools.tracer.Tracer(G_SRC_ARDUPILOT)
     t.addpath(G_SRC_AGENT)
