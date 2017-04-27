@@ -122,9 +122,9 @@ def do_link_flight_mode(fm):
     with open("current-flight-mode.h", 'w') as fd:
         fd.write("\n".join([
             '#include "{}.h"'.format(fm.name),
-            '#define current_flight_mode_initialize {}_initialize',
-            '#define current_flight_mode_terminate {}_terminate',
-            '#define current_flight_mode_step {}_step',
+            '#define current_flight_mode_initialize {}_initialize'.format(fm.name),
+            '#define current_flight_mode_terminate {}_terminate'.format(fm.name),
+            '#define current_flight_mode_step {}_step'.format(fm.name),
             ''
         ]))
     os.chdir(prev_dir)
