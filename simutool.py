@@ -117,8 +117,16 @@ def do_link_flight_mode(fm):
 
     # link current flight mode .h file as current-flight-mode.h
     prev_dir = os.getcwd()
+
     os.chdir(arducopter_dir)
-    os.symlink("{}.h".format(fm.name), "current-flight-mode.h")
+    with open("current-flight-mode.h", 'w') as fd:
+        fd.write("\n".join([
+            '#include "{}.h"'.format(fm.name),
+            '#define current_flight_mode_initialize {}_initialize',
+            '#define current_flight_mode_terminate {}_terminate',
+            '#define current_flight_mode_step {}_step',
+            ''
+        ]))
     os.chdir(prev_dir)
     return 0
 
