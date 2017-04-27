@@ -48,7 +48,6 @@ class FlightMode(object):
         return [
             self.name + ".cpp",
             self.name + "_data.cpp",
-            'simucopter-server.cpp',
             'simucopter-ardupilot.cpp',
         ]
 
