@@ -110,10 +110,16 @@ def do_link_flight_mode(fm):
     # obtain full paths
     included_files_full = [os.path.join(fm.path, fname) for fname in included_files]
 
+    # link all included files we've discovered
     for fm_file in included_files_full:
         link_file = os.path.join(arducopter_dir, os.path.basename(fm_file))
         link_fm_file(fm_file, link_file)
 
+    # link current flight mode .h file as current-flight-mode.h
+    prev_dir = os.getcwd()
+    os.chdir(arducopter_dir)
+    os.symlink("{}.h".format(fm.name), "current-flight-mode.h")
+    os.chdir(prev_dir)
     return 0
 
 
